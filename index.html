@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Coach AI – Acolyte</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; background: #f4f4f4; }
+    #chatbox { background: white; border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: auto; margin-bottom: 10px; }
+    .msg { margin: 5px 0; }
+    .user { color: blue; }
+    .ai { color: green; }
+    input[type="text"] { padding: 8px; font-size: 1em; }
+    button { padding: 8px 16px; font-size: 1em; }
+  </style>
+</head>
+<body>
+  <h1>Coach AI – Acolyte</h1>
+  <div id="chatbox"></div>
+  <input type="text" id="message" placeholder="Pose ta question..." style="width: 80%;" />
+  <button onclick="sendMessage()">Envoyer</button>
+
+  <script>
+    const webhookUrl = "https://n8n-db-u38056.vm.elestio.app/webhook/20a2572e-2dbe-4594-b035-eec1cc57322f/chat";
+
+    async function sendMessage() {
+      const input = document.getElementById("message");
+      const chatbox = document.getElementById("chatbox");
+      const userMessage = input.value.trim();
+      if (!userMessage) return;
+
+      chatbox.innerHTML += `<div class="msg user"><strong>Toi :</strong> ${userMessage}</div>`;
+      input.value = "";
+
+      try {
+        const response = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: userMessage })
+        });
+
+        const data = await response.json();
+        chatbox.innerHTML += `<div class="msg ai"><strong>Coach :</strong> ${data.response}</div>`;
+        chatbox.scrollTop = chatbox.scrollHeight;
+      } catch (err) {
+        chatbox.innerHTML += `<div class="msg ai"><strong>Erreur :</strong> Impossible de contacter le coach.</div>`;
+      }
+    }
+  </script>
+</body>
+</html>
