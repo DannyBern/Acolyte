@@ -1,370 +1,201 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Coach AI – Acolyte</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f0f2f5;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .header {
-      background: #2c3e50;
-      color: white;
-      padding: 20px;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .header h1 {
-      font-size: 24px;
-      font-weight: 600;
-    }
-    
-    .header p {
-      font-size: 14px;
-      opacity: 0.8;
-      margin-top: 5px;
-    }
-    
-    .chat-container {
-      flex: 1;
-      max-width: 800px;
-      width: 100%;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      padding: 20px;
-    }
-    
-    #chatbox { 
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      padding: 20px;
-      flex: 1;
-      overflow-y: auto;
-      margin-bottom: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-    
-    .msg {
-      max-width: 70%;
-      padding: 12px 18px;
-      border-radius: 18px;
-      word-wrap: break-word;
-      animation: fadeIn 0.3s ease-in;
-    }
-    
-    @keyframes fadeIn {
-      from { 
-        opacity: 0; 
-        transform: translateY(10px); 
-      }
-      to { 
-        opacity: 1; 
-        transform: translateY(0); 
-      }
-    }
-    
-    .user {
-      background: #007bff;
-      color: white;
-      align-self: flex-end;
-      border-bottom-right-radius: 4px;
-    }
-    
-    .ai {
-      background: #e9ecef;
-      color: #333;
-      align-self: flex-start;
-      border-bottom-left-radius: 4px;
-    }
-    
-    .error {
-      background: #f8d7da;
-      color: #721c24;
-      align-self: center;
-      text-align: center;
-      max-width: 90%;
-    }
-    
-    .typing {
-      background: #e9ecef;
-      color: #666;
-      align-self: flex-start;
-      border-bottom-left-radius: 4px;
-      font-style: italic;
-    }
-    
-    .typing .dots {
-      display: inline-block;
-    }
-    
-    .typing .dots span {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #999;
-      margin: 0 2px;
-      animation: bounce 1.4s infinite;
-    }
-    
-    .typing .dots span:nth-child(2) {
-      animation-delay: 0.2s;
-    }
-    
-    .typing .dots span:nth-child(3) {
-      animation-delay: 0.4s;
-    }
-    
-    @keyframes bounce {
-      0%, 60%, 100% {
-        transform: translateY(0);
-      }
-      30% {
-        transform: translateY(-10px);
-      }
-    }
-    
-    .input-container {
-      display: flex;
-      gap: 10px;
-      background: white;
-      padding: 15px;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    
-    #message {
-      flex: 1;
-      padding: 12px 20px;
-      font-size: 16px;
-      border: 2px solid #e0e0e0;
-      border-radius: 25px;
-      outline: none;
-      transition: border-color 0.3s;
-    }
-    
-    #message:focus {
-      border-color: #007bff;
-    }
-    
-    #sendBtn {
-      padding: 0 25px;
-      font-size: 16px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 25px;
-      cursor: pointer;
-      transition: all 0.3s;
-      font-weight: 500;
-    }
-    
-    #sendBtn:hover:not(:disabled) {
-      background: #0056b3;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 4px rgba(0,123,255,0.3);
-    }
-    
-    #sendBtn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-      transform: none;
-    }
-    
-    /* Mobile responsive */
-    @media (max-width: 600px) {
-      .chat-container {
-        padding: 10px;
-      }
-      
-      .msg {
-        max-width: 85%;
-      }
-      
-      .header h1 {
-        font-size: 20px;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>Coach AI – Acolyte</h1>
-    <p>Gestion du stress et performance pour entrepreneurs</p>
-  </div>
-  
-  <div class="chat-container">
-    <div id="chatbox">
-      <div class="msg ai">Salut! 👋 Chu là pour t'aider avec le stress, la concentration pis ton énergie. Qu'est-ce qui te préoccupe aujourd'hui?</div>
-    </div>
-    
-    <div class="input-container">
-      <input 
-        type="text" 
-        id="message" 
-        placeholder="Écris ton message..." 
-        autocomplete="off"
-      />
-      <button id="sendBtn">Envoyer</button>
-    </div>
-  </div>
-
-  <script>
-    // Configuration - URL de ton webhook n8n
-    const WEBHOOK_URL = "https://n8n-db-u38056.vm.elestio.app/webhook/20a2572e-2dbe-4594-b035-eec1cc57322f/chat";
-    
-    // Génère un ID de session unique pour chaque utilisateur
-    const SESSION_ID = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    // État de l'application
-    let isLoading = false;
-    
-    // Références DOM
-    const chatbox = document.getElementById('chatbox');
-    const messageInput = document.getElementById('message');
-    const sendBtn = document.getElementById('sendBtn');
-    
-    // Gestion de l'envoi avec Enter
-    messageInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey && !isLoading) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-    
-    // Gestion du clic sur le bouton
-    sendBtn.addEventListener('click', sendMessage);
-    
-    // Fonction principale d'envoi de message
-    async function sendMessage() {
-      const userMessage = messageInput.value.trim();
-      
-      // Validation
-      if (!userMessage || isLoading) return;
-      
-      // Désactive l'interface pendant l'envoi
-      setLoading(true);
-      
-      // Ajoute le message utilisateur
-      addMessage(userMessage, 'user');
-      
-      // Vide le champ
-      messageInput.value = '';
-      
-      // Affiche l'indicateur de frappe
-      const typingId = showTypingIndicator();
-      
-      try {
-        // Envoie la requête au webhook
-        const response = await fetch(WEBHOOK_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-            message: userMessage,
-            sessionId: SESSION_ID
-          })
-        });
-        
-        // Vérifie la réponse
-        if (!response.ok) {
-          throw new Error(`Erreur HTTP: ${response.status}`);
-        }
-        
-        // Parse la réponse
-        const data = await response.json();
-        console.log('Réponse reçue:', data); // Debug
-        
-        // Retire l'indicateur de frappe
-        removeTypingIndicator(typingId);
-        
-        // Ajoute la réponse du coach
-        const coachResponse = data.output || "Désolé, j'ai pas compris. Peux-tu reformuler?";
-        addMessage(coachResponse, 'ai');
-        
-      } catch (error) {
-        console.error('Erreur:', error);
-        
-        // Retire l'indicateur de frappe
-        removeTypingIndicator(typingId);
-        
-        // Affiche un message d'erreur
-        addMessage("Oups! Y'a un pépin avec la connexion. Réessaie dans quelques secondes.", 'error');
-      } finally {
-        // Réactive l'interface
-        setLoading(false);
-        messageInput.focus();
-      }
-    }
-    
-    // Ajoute un message dans le chat
-    function addMessage(text, type) {
-      const msgDiv = document.createElement('div');
-      msgDiv.className = `msg ${type}`;
-      msgDiv.textContent = text;
-      chatbox.appendChild(msgDiv);
-      
-      // Scroll automatique
-      chatbox.scrollTop = chatbox.scrollHeight;
-    }
-    
-    // Affiche l'indicateur de frappe
-    function showTypingIndicator() {
-      const typingId = `typing-${Date.now()}`;
-      const typingDiv = document.createElement('div');
-      typingDiv.id = typingId;
-      typingDiv.className = 'msg typing';
-      typingDiv.innerHTML = `
-        Le coach réfléchit<span class="dots">
-          <span></span><span></span><span></span>
-        </span>
-      `;
-      chatbox.appendChild(typingDiv);
-      chatbox.scrollTop = chatbox.scrollHeight;
-      return typingId;
-    }
-    
-    // Retire l'indicateur de frappe
-    function removeTypingIndicator(typingId) {
-      const typingEl = document.getElementById(typingId);
-      if (typingEl) {
-        typingEl.remove();
-      }
-    }
-    
-    // Gère l'état de chargement
-    function setLoading(loading) {
-      isLoading = loading;
-      messageInput.disabled = loading;
-      sendBtn.disabled = loading;
-      sendBtn.textContent = loading ? 'Envoi...' : 'Envoyer';
-    }
-    
-    // Focus initial
-    messageInput.focus();
-    
-    // Log de démarrage
-    console.log('Chat Acolyte initialisé');
-    console.log('Session ID:', SESSION_ID);
-  </script>
-</body>
-</html>
+diff --git a/index.html b/index.html
+index ee65c7b32f7474366510ac1e030b75cb3b66acca..419e81a6f4dd7a585f767391e456552e5ecad760 100644
+--- a/index.html
++++ b/index.html
+@@ -188,72 +188,76 @@
+       transform: none;
+     }
+     
+     /* Mobile responsive */
+     @media (max-width: 600px) {
+       .chat-container {
+         padding: 10px;
+       }
+       
+       .msg {
+         max-width: 85%;
+       }
+       
+       .header h1 {
+         font-size: 20px;
+       }
+     }
+   </style>
+ </head>
+ <body>
+   <div class="header">
+     <h1>Coach AI – Acolyte</h1>
+     <p>Gestion du stress et performance pour entrepreneurs</p>
+   </div>
+   
+-  <div class="chat-container">
+-    <div id="chatbox">
+-      <div class="msg ai">Salut! 👋 Chu là pour t'aider avec le stress, la concentration pis ton énergie. Qu'est-ce qui te préoccupe aujourd'hui?</div>
+-    </div>
++  <div class="chat-container">
++    <div id="chatbox"></div>
+     
+     <div class="input-container">
+       <input 
+         type="text" 
+         id="message" 
+         placeholder="Écris ton message..." 
+         autocomplete="off"
+       />
+       <button id="sendBtn">Envoyer</button>
+     </div>
+   </div>
+ 
+   <script>
+-    // Configuration - URL de ton webhook n8n
+-    const WEBHOOK_URL = "https://n8n-db-u38056.vm.elestio.app/webhook/20a2572e-2dbe-4594-b035-eec1cc57322f/chat";
+-    
+-    // Génère un ID de session unique pour chaque utilisateur
+-    const SESSION_ID = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
++    // Configuration - URL de ton webhook n8n
++    const WEBHOOK_URL = "https://n8n-db-u38056.vm.elestio.app/webhook/20a2572e-2dbe-4594-b035-eec1cc57322f/chat";
++
++    const DEFAULT_MESSAGE = "Salut! \uD83D\uDC4B Chu l\u00E0 pour t'aider avec le stress, la concentration pis ton \u00E9nergie. Qu'est-ce qui te pr\u00E9occupe aujourd'hui?";
++
++    // R\u00E9cup\u00E8re ou g\u00E9n\u00E8re un ID de session unique
++    const SESSION_ID = localStorage.getItem('sessionId') || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
++    localStorage.setItem('sessionId', SESSION_ID);
++
++    // Cl\u00E9 de stockage pour la conversation courante
++    const CONVERSATION_KEY = `conversation-${SESSION_ID}`;
+     
+     // État de l'application
+     let isLoading = false;
+     
+     // Références DOM
+     const chatbox = document.getElementById('chatbox');
+     const messageInput = document.getElementById('message');
+     const sendBtn = document.getElementById('sendBtn');
+     
+     // Gestion de l'envoi avec Enter
+     messageInput.addEventListener('keypress', (e) => {
+       if (e.key === 'Enter' && !e.shiftKey && !isLoading) {
+         e.preventDefault();
+         sendMessage();
+       }
+     });
+     
+     // Gestion du clic sur le bouton
+     sendBtn.addEventListener('click', sendMessage);
+     
+     // Fonction principale d'envoi de message
+     async function sendMessage() {
+       const userMessage = messageInput.value.trim();
+       
+       // Validation
+diff --git a/index.html b/index.html
+index ee65c7b32f7474366510ac1e030b75cb3b66acca..419e81a6f4dd7a585f767391e456552e5ecad760 100644
+--- a/index.html
++++ b/index.html
+@@ -294,77 +298,94 @@
+         const data = await response.json();
+         console.log('Réponse reçue:', data); // Debug
+         
+         // Retire l'indicateur de frappe
+         removeTypingIndicator(typingId);
+         
+         // Ajoute la réponse du coach
+         const coachResponse = data.output || "Désolé, j'ai pas compris. Peux-tu reformuler?";
+         addMessage(coachResponse, 'ai');
+         
+       } catch (error) {
+         console.error('Erreur:', error);
+         
+         // Retire l'indicateur de frappe
+         removeTypingIndicator(typingId);
+         
+         // Affiche un message d'erreur
+         addMessage("Oups! Y'a un pépin avec la connexion. Réessaie dans quelques secondes.", 'error');
+       } finally {
+         // Réactive l'interface
+         setLoading(false);
+         messageInput.focus();
+       }
+     }
+     
+-    // Ajoute un message dans le chat
+-    function addMessage(text, type) {
+-      const msgDiv = document.createElement('div');
+-      msgDiv.className = `msg ${type}`;
+-      msgDiv.textContent = text;
+-      chatbox.appendChild(msgDiv);
+-      
+-      // Scroll automatique
+-      chatbox.scrollTop = chatbox.scrollHeight;
+-    }
++    // Ajoute un message dans le chat et le sauvegarde
++    function addMessage(text, type, save = true) {
++      const msgDiv = document.createElement('div');
++      msgDiv.className = `msg ${type}`;
++      msgDiv.textContent = text;
++      chatbox.appendChild(msgDiv);
++
++      if (save) {
++        const conversation = JSON.parse(localStorage.getItem(CONVERSATION_KEY) || '[]');
++        conversation.push({ text, type });
++        localStorage.setItem(CONVERSATION_KEY, JSON.stringify(conversation));
++      }
++
++      // Scroll automatique
++      chatbox.scrollTop = chatbox.scrollHeight;
++    }
++
++    // Charge l'historique depuis le stockage
++    function loadConversation() {
++      const conversation = JSON.parse(localStorage.getItem(CONVERSATION_KEY) || '[]');
++      if (conversation.length === 0) {
++        addMessage(DEFAULT_MESSAGE, 'ai');
++      } else {
++        conversation.forEach(msg => addMessage(msg.text, msg.type, false));
++      }
++    }
+     
+     // Affiche l'indicateur de frappe
+     function showTypingIndicator() {
+       const typingId = `typing-${Date.now()}`;
+       const typingDiv = document.createElement('div');
+       typingDiv.id = typingId;
+       typingDiv.className = 'msg typing';
+       typingDiv.innerHTML = `
+         Le coach réfléchit<span class="dots">
+           <span></span><span></span><span></span>
+         </span>
+       `;
+       chatbox.appendChild(typingDiv);
+       chatbox.scrollTop = chatbox.scrollHeight;
+       return typingId;
+     }
+     
+     // Retire l'indicateur de frappe
+     function removeTypingIndicator(typingId) {
+       const typingEl = document.getElementById(typingId);
+       if (typingEl) {
+         typingEl.remove();
+       }
+     }
+     
+     // Gère l'état de chargement
+     function setLoading(loading) {
+       isLoading = loading;
+       messageInput.disabled = loading;
+       sendBtn.disabled = loading;
+       sendBtn.textContent = loading ? 'Envoi...' : 'Envoyer';
+     }
+     
+-    // Focus initial
+-    messageInput.focus();
++    // Charge l'historique puis focus initial
++    loadConversation();
++    messageInput.focus();
+     
+     // Log de démarrage
+     console.log('Chat Acolyte initialisé');
+     console.log('Session ID:', SESSION_ID);
+   </script>
+ </body>
+ </html>
