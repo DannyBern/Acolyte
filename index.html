@@ -1,9 +1,9 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/index.html b/index.html
-index ee65c7b32f7474366510ac1e030b75cb3b66acca..419e81a6f4dd7a585f767391e456552e5ecad760 100644
+index ee65c7b32f7474366510ac1e030b75cb3b66acca..5d44659f10a61f231b2bd548e0140fd92a6e8e5e 100644
 --- a/index.html
 +++ b/index.html
-@@ -188,72 +188,76 @@
+@@ -188,72 +188,82 @@
        transform: none;
      }
      
@@ -34,7 +34,9 @@ index ee65c7b32f7474366510ac1e030b75cb3b66acca..419e81a6f4dd7a585f767391e456552e
 -      <div class="msg ai">Salut! 👋 Chu là pour t'aider avec le stress, la concentration pis ton énergie. Qu'est-ce qui te préoccupe aujourd'hui?</div>
 -    </div>
 +  <div class="chat-container">
-+    <div id="chatbox"></div>
++    <div id="chatbox">
++      <div class="msg ai">Salut! 👋 Chu là pour t'aider avec le stress, la concentration pis ton énergie. Qu'est-ce qui te préoccupe aujourd'hui?</div>
++    </div>
      
      <div class="input-container">
        <input 
@@ -48,22 +50,23 @@ index ee65c7b32f7474366510ac1e030b75cb3b66acca..419e81a6f4dd7a585f767391e456552e
    </div>
  
    <script>
--    // Configuration - URL de ton webhook n8n
--    const WEBHOOK_URL = "https://n8n-db-u38056.vm.elestio.app/webhook/20a2572e-2dbe-4594-b035-eec1cc57322f/chat";
--    
+     // Configuration - URL de ton webhook n8n
+     const WEBHOOK_URL = "https://n8n-db-u38056.vm.elestio.app/webhook/20a2572e-2dbe-4594-b035-eec1cc57322f/chat";
+     
 -    // Génère un ID de session unique pour chaque utilisateur
 -    const SESSION_ID = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-+    // Configuration - URL de ton webhook n8n
-+    const WEBHOOK_URL = "https://n8n-db-u38056.vm.elestio.app/webhook/20a2572e-2dbe-4594-b035-eec1cc57322f/chat";
++    // Message d'accueil par défaut
++    const DEFAULT_MESSAGE = "Salut! \uD83D\uDC4B Chu là pour t'aider avec le stress, la concentration pis ton énergie. Qu'est-ce qui te préoccupe aujourd'hui?";
 +
-+    const DEFAULT_MESSAGE = "Salut! \uD83D\uDC4B Chu l\u00E0 pour t'aider avec le stress, la concentration pis ton \u00E9nergie. Qu'est-ce qui te pr\u00E9occupe aujourd'hui?";
-+
-+    // R\u00E9cup\u00E8re ou g\u00E9n\u00E8re un ID de session unique
++    // Récupère ou génère un ID de session persistant
 +    const SESSION_ID = localStorage.getItem('sessionId') || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 +    localStorage.setItem('sessionId', SESSION_ID);
 +
-+    // Cl\u00E9 de stockage pour la conversation courante
++    // Clé de stockage de la conversation
 +    const CONVERSATION_KEY = `conversation-${SESSION_ID}`;
++
++    // Charge la conversation sauvegardée
++    let conversation = JSON.parse(localStorage.getItem(CONVERSATION_KEY) || '[]');
      
      // État de l'application
      let isLoading = false;
@@ -90,10 +93,10 @@ index ee65c7b32f7474366510ac1e030b75cb3b66acca..419e81a6f4dd7a585f767391e456552e
        
        // Validation
 diff --git a/index.html b/index.html
-index ee65c7b32f7474366510ac1e030b75cb3b66acca..419e81a6f4dd7a585f767391e456552e5ecad760 100644
+index ee65c7b32f7474366510ac1e030b75cb3b66acca..5d44659f10a61f231b2bd548e0140fd92a6e8e5e 100644
 --- a/index.html
 +++ b/index.html
-@@ -294,77 +298,94 @@
+@@ -294,77 +304,93 @@
          const data = await response.json();
          console.log('Réponse reçue:', data); // Debug
          
@@ -137,7 +140,6 @@ index ee65c7b32f7474366510ac1e030b75cb3b66acca..419e81a6f4dd7a585f767391e456552e
 +      chatbox.appendChild(msgDiv);
 +
 +      if (save) {
-+        const conversation = JSON.parse(localStorage.getItem(CONVERSATION_KEY) || '[]');
 +        conversation.push({ text, type });
 +        localStorage.setItem(CONVERSATION_KEY, JSON.stringify(conversation));
 +      }
@@ -146,9 +148,9 @@ index ee65c7b32f7474366510ac1e030b75cb3b66acca..419e81a6f4dd7a585f767391e456552e
 +      chatbox.scrollTop = chatbox.scrollHeight;
 +    }
 +
-+    // Charge l'historique depuis le stockage
++    // Recharge l'historique depuis le stockage
 +    function loadConversation() {
-+      const conversation = JSON.parse(localStorage.getItem(CONVERSATION_KEY) || '[]');
++      chatbox.innerHTML = '';
 +      if (conversation.length === 0) {
 +        addMessage(DEFAULT_MESSAGE, 'ai');
 +      } else {
@@ -190,7 +192,7 @@ index ee65c7b32f7474366510ac1e030b75cb3b66acca..419e81a6f4dd7a585f767391e456552e
      
 -    // Focus initial
 -    messageInput.focus();
-+    // Charge l'historique puis focus initial
++    // Charge l'historique et focus initial
 +    loadConversation();
 +    messageInput.focus();
      
