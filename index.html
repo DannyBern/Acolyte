@@ -1,207 +1,302 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/index.html b/index.html
-index ee65c7b32f7474366510ac1e030b75cb3b66acca..5d44659f10a61f231b2bd548e0140fd92a6e8e5e 100644
---- a/index.html
-+++ b/index.html
-@@ -188,72 +188,82 @@
-       transform: none;
-     }
-     
-     /* Mobile responsive */
-     @media (max-width: 600px) {
-       .chat-container {
-         padding: 10px;
-       }
-       
-       .msg {
-         max-width: 85%;
-       }
-       
-       .header h1 {
-         font-size: 20px;
-       }
-     }
-   </style>
- </head>
- <body>
-   <div class="header">
-     <h1>Coach AI – Acolyte</h1>
-     <p>Gestion du stress et performance pour entrepreneurs</p>
-   </div>
-   
--  <div class="chat-container">
--    <div id="chatbox">
--      <div class="msg ai">Salut! 👋 Chu là pour t'aider avec le stress, la concentration pis ton énergie. Qu'est-ce qui te préoccupe aujourd'hui?</div>
--    </div>
-+  <div class="chat-container">
-+    <div id="chatbox">
-+      <div class="msg ai">Salut! 👋 Chu là pour t'aider avec le stress, la concentration pis ton énergie. Qu'est-ce qui te préoccupe aujourd'hui?</div>
-+    </div>
-     
-     <div class="input-container">
-       <input 
-         type="text" 
-         id="message" 
-         placeholder="Écris ton message..." 
-         autocomplete="off"
-       />
-       <button id="sendBtn">Envoyer</button>
-     </div>
-   </div>
- 
-   <script>
-     // Configuration - URL de ton webhook n8n
-     const WEBHOOK_URL = "https://n8n-db-u38056.vm.elestio.app/webhook/20a2572e-2dbe-4594-b035-eec1cc57322f/chat";
-     
--    // Génère un ID de session unique pour chaque utilisateur
--    const SESSION_ID = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-+    // Message d'accueil par défaut
-+    const DEFAULT_MESSAGE = "Salut! \uD83D\uDC4B Chu là pour t'aider avec le stress, la concentration pis ton énergie. Qu'est-ce qui te préoccupe aujourd'hui?";
-+
-+    // Récupère ou génère un ID de session persistant
-+    const SESSION_ID = localStorage.getItem('sessionId') || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-+    localStorage.setItem('sessionId', SESSION_ID);
-+
-+    // Clé de stockage de la conversation
-+    const CONVERSATION_KEY = `conversation-${SESSION_ID}`;
-+
-+    // Charge la conversation sauvegardée
-+    let conversation = JSON.parse(localStorage.getItem(CONVERSATION_KEY) || '[]');
-     
-     // État de l'application
-     let isLoading = false;
-     
-     // Références DOM
-     const chatbox = document.getElementById('chatbox');
-     const messageInput = document.getElementById('message');
-     const sendBtn = document.getElementById('sendBtn');
-     
-     // Gestion de l'envoi avec Enter
-     messageInput.addEventListener('keypress', (e) => {
-       if (e.key === 'Enter' && !e.shiftKey && !isLoading) {
-         e.preventDefault();
-         sendMessage();
-       }
-     });
-     
-     // Gestion du clic sur le bouton
-     sendBtn.addEventListener('click', sendMessage);
-     
-     // Fonction principale d'envoi de message
-     async function sendMessage() {
-       const userMessage = messageInput.value.trim();
-       
-       // Validation
-diff --git a/index.html b/index.html
-index ee65c7b32f7474366510ac1e030b75cb3b66acca..5d44659f10a61f231b2bd548e0140fd92a6e8e5e 100644
---- a/index.html
-+++ b/index.html
-@@ -294,77 +304,93 @@
-         const data = await response.json();
-         console.log('Réponse reçue:', data); // Debug
-         
-         // Retire l'indicateur de frappe
-         removeTypingIndicator(typingId);
-         
-         // Ajoute la réponse du coach
-         const coachResponse = data.output || "Désolé, j'ai pas compris. Peux-tu reformuler?";
-         addMessage(coachResponse, 'ai');
-         
-       } catch (error) {
-         console.error('Erreur:', error);
-         
-         // Retire l'indicateur de frappe
-         removeTypingIndicator(typingId);
-         
-         // Affiche un message d'erreur
-         addMessage("Oups! Y'a un pépin avec la connexion. Réessaie dans quelques secondes.", 'error');
-       } finally {
-         // Réactive l'interface
-         setLoading(false);
-         messageInput.focus();
-       }
-     }
-     
--    // Ajoute un message dans le chat
--    function addMessage(text, type) {
--      const msgDiv = document.createElement('div');
--      msgDiv.className = `msg ${type}`;
--      msgDiv.textContent = text;
--      chatbox.appendChild(msgDiv);
--      
--      // Scroll automatique
--      chatbox.scrollTop = chatbox.scrollHeight;
--    }
-+    // Ajoute un message dans le chat et le sauvegarde
-+    function addMessage(text, type, save = true) {
-+      const msgDiv = document.createElement('div');
-+      msgDiv.className = `msg ${type}`;
-+      msgDiv.textContent = text;
-+      chatbox.appendChild(msgDiv);
-+
-+      if (save) {
-+        conversation.push({ text, type });
-+        localStorage.setItem(CONVERSATION_KEY, JSON.stringify(conversation));
-+      }
-+
-+      // Scroll automatique
-+      chatbox.scrollTop = chatbox.scrollHeight;
-+    }
-+
-+    // Recharge l'historique depuis le stockage
-+    function loadConversation() {
-+      chatbox.innerHTML = '';
-+      if (conversation.length === 0) {
-+        addMessage(DEFAULT_MESSAGE, 'ai');
-+      } else {
-+        conversation.forEach(msg => addMessage(msg.text, msg.type, false));
-+      }
-+    }
-     
-     // Affiche l'indicateur de frappe
-     function showTypingIndicator() {
-       const typingId = `typing-${Date.now()}`;
-       const typingDiv = document.createElement('div');
-       typingDiv.id = typingId;
-       typingDiv.className = 'msg typing';
-       typingDiv.innerHTML = `
-         Le coach réfléchit<span class="dots">
-           <span></span><span></span><span></span>
-         </span>
-       `;
-       chatbox.appendChild(typingDiv);
-       chatbox.scrollTop = chatbox.scrollHeight;
-       return typingId;
-     }
-     
-     // Retire l'indicateur de frappe
-     function removeTypingIndicator(typingId) {
-       const typingEl = document.getElementById(typingId);
-       if (typingEl) {
-         typingEl.remove();
-       }
-     }
-     
-     // Gère l'état de chargement
-     function setLoading(loading) {
-       isLoading = loading;
-       messageInput.disabled = loading;
-       sendBtn.disabled = loading;
-       sendBtn.textContent = loading ? 'Envoi...' : 'Envoyer';
-     }
-     
--    // Focus initial
--    messageInput.focus();
-+    // Charge l'historique et focus initial
-+    loadConversation();
-+    messageInput.focus();
-     
-     // Log de démarrage
-     console.log('Chat Acolyte initialisé');
-     console.log('Session ID:', SESSION_ID);
-   </script>
- </body>
- </html>
- 
-EOF
-)
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acolyte - Interface Zen</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #2d3a2d;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="%23556b2f"/><rect x="100" y="50" width="1000" height="700" rx="20" fill="%234a5d3a" opacity="0.3"/><path d="M 200 100 Q 600 150 1000 100" stroke="%23708238" stroke-width="2" fill="none" opacity="0.2"/><path d="M 200 700 Q 600 650 1000 700" stroke="%23708238" stroke-width="2" fill="none" opacity="0.2"/><circle cx="150" cy="150" r="80" fill="%23708238" opacity="0.1"/><circle cx="1050" cy="650" r="100" fill="%23708238" opacity="0.1"/></svg>');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.4;
+            z-index: -1;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            height: 85vh;
+            background: rgba(85, 107, 47, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(112, 130, 56, 0.3);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(112, 130, 56, 0.2);
+        }
+
+        .header h1 {
+            color: #c5d4a0;
+            font-size: 24px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .message.bot .message-content {
+            background: rgba(112, 130, 56, 0.2);
+            color: #e8f0d8;
+            border: 1px solid rgba(112, 130, 56, 0.3);
+        }
+
+        .message.user .message-content {
+            background: rgba(139, 169, 89, 0.3);
+            color: #f0f5e8;
+            border: 1px solid rgba(139, 169, 89, 0.4);
+        }
+
+        .input-area {
+            padding: 20px;
+            border-top: 1px solid rgba(112, 130, 56, 0.2);
+            display: flex;
+            gap: 10px;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 12px 20px;
+            background: rgba(85, 107, 47, 0.1);
+            border: 1px solid rgba(112, 130, 56, 0.3);
+            border-radius: 25px;
+            color: #e8f0d8;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        #messageInput:focus {
+            background: rgba(112, 130, 56, 0.15);
+            border-color: rgba(139, 169, 89, 0.5);
+        }
+
+        #messageInput::placeholder {
+            color: rgba(197, 212, 160, 0.5);
+        }
+
+        #sendBtn {
+            padding: 12px 24px;
+            background: rgba(112, 130, 56, 0.3);
+            border: 1px solid rgba(112, 130, 56, 0.4);
+            border-radius: 25px;
+            color: #e8f0d8;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        #sendBtn:hover {
+            background: rgba(139, 169, 89, 0.4);
+            transform: scale(1.05);
+        }
+
+        #clearBtn {
+            padding: 8px 16px;
+            background: rgba(80, 60, 60, 0.3);
+            border: 1px solid rgba(100, 60, 60, 0.4);
+            border-radius: 15px;
+            color: #f0d8d8;
+            cursor: pointer;
+            font-size: 12px;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            transition: all 0.3s ease;
+        }
+
+        #clearBtn:hover {
+            background: rgba(100, 60, 60, 0.4);
+        }
+
+        .chat-area::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-area::-webkit-scrollbar-track {
+            background: rgba(85, 107, 47, 0.1);
+            border-radius: 4px;
+        }
+
+        .chat-area::-webkit-scrollbar-thumb {
+            background: rgba(112, 130, 56, 0.3);
+            border-radius: 4px;
+        }
+
+        .chat-area::-webkit-scrollbar-thumb:hover {
+            background: rgba(112, 130, 56, 0.5);
+        }
+
+        .timestamp {
+            font-size: 11px;
+            color: rgba(197, 212, 160, 0.4);
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ACOLYTE</h1>
+            <button id="clearBtn">Effacer</button>
+        </div>
+        <div class="chat-area" id="chatArea"></div>
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Écris ton message..." autofocus>
+            <button id="sendBtn">Envoyer</button>
+        </div>
+    </div>
+
+    <script>
+        // Éléments DOM
+        const chatArea = document.getElementById('chatArea');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        // Charger l'historique
+        function loadHistory() {
+            const history = localStorage.getItem('acolyteChat');
+            if (history) {
+                const messages = JSON.parse(history);
+                messages.forEach(msg => {
+                    displayMessage(msg.content, msg.type, msg.timestamp, false);
+                });
+            }
+        }
+
+        // Sauvegarder message
+        function saveMessage(content, type) {
+            const history = localStorage.getItem('acolyteChat');
+            const messages = history ? JSON.parse(history) : [];
+            messages.push({
+                content: content,
+                type: type,
+                timestamp: new Date().toISOString()
+            });
+            localStorage.setItem('acolyteChat', JSON.stringify(messages));
+        }
+
+        // Afficher message
+        function displayMessage(content, type, timestamp = null, save = true) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(contentDiv);
+            
+            if (timestamp) {
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'timestamp';
+                const date = new Date(timestamp);
+                timeDiv.textContent = date.toLocaleString('fr-FR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    day: '2-digit',
+                    month: '2-digit'
+                });
+                messageDiv.appendChild(timeDiv);
+            }
+            
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            
+            if (save) {
+                saveMessage(content, type);
+            }
+        }
+
+        // Envoyer message
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message) {
+                displayMessage(message, 'user');
+                messageInput.value = '';
+                
+                // Simuler réponse bot (à remplacer par vraie API)
+                setTimeout(() => {
+                    displayMessage("Message reçu. Intégration API requise.", 'bot');
+                }, 500);
+            }
+        }
+
+        // Effacer historique
+        function clearHistory() {
+            if (confirm('Effacer tout l\'historique ?')) {
+                localStorage.removeItem('acolyteChat');
+                chatArea.innerHTML = '';
+            }
+        }
+
+        // Event listeners
+        sendBtn.addEventListener('click', sendMessage);
+        clearBtn.addEventListener('click', clearHistory);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Charger au démarrage
+        loadHistory();
+    </script>
+</body>
+</html>
