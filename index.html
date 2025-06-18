@@ -454,14 +454,14 @@
         const ELEVENLABS_API_KEY = 'sk_0bd85efd5421ef4c325d78cd6bc045511ba84a467245ce6c';
         const ELEVENLABS_VOICE_ID = 'PjjDTK4A4sFjUgIFoEvC';
         
-        // Modèle V3 Alpha par défaut
+        // Modèle optimisé pour qualité max
         let currentModel = 'eleven_multilingual_v2';
         
-        // Paramètres audio par défaut
+        // Paramètres audio optimisés pour coaching français
         const audioSettings = {
-            stability: 0.75,
-            similarity_boost: 0.75,
-            style: 0.5,
+            stability: 0.85,        // Plus stable pour un coach
+            similarity_boost: 0.90, // Fidélité maximale à la voix
+            style: 0.75,           // Plus expressif pour coaching
             speed: 1.0
         };
         
@@ -586,33 +586,33 @@
                 <div class="setting-group">
                     <label>Modèle</label>
                     <select onchange="updateAudioModel(this.value)" style="padding: 4px 8px; border-radius: 4px; background: var(--surface-light); color: var(--text-primary); border: 1px solid var(--border-color);">
-                        <option value="eleven_flash_v2_5">V3 Alpha (Flash)</option>
-                        <option value="eleven_turbo_v2_5">V2.5 Turbo</option>
-                        <option value="eleven_multilingual_v2">V2 Multilingual</option>
-                        <option value="eleven_turbo_v2">V2 Turbo</option>
+                        <option value="eleven_multilingual_v2" selected>Multilingual v2 (Qualité Max)</option>
+                        <option value="eleven_turbo_v2_5">Turbo v2.5 (Rapide + Qualité)</option>
+                        <option value="eleven_flash_v2_5">Flash v2.5 (Ultra Rapide)</option>
+                        <option value="eleven_turbo_v2">Turbo v2 (Anglais uniquement)</option>
                     </select>
                 </div>
                 <div class="setting-group">
                     <label>Stabilité</label>
-                    <input type="range" min="0.1" max="1" step="0.1" value="${audioSettings.stability}" 
+                    <input type="range" min="0.1" max="1" step="0.05" value="${audioSettings.stability}" 
                            onchange="updateAudioSetting('stability', this.value)">
                     <span class="setting-value">${audioSettings.stability}</span>
                 </div>
                 <div class="setting-group">
                     <label>Similarité</label>
-                    <input type="range" min="0.1" max="1" step="0.1" value="${audioSettings.similarity_boost}" 
+                    <input type="range" min="0.1" max="1" step="0.05" value="${audioSettings.similarity_boost}" 
                            onchange="updateAudioSetting('similarity_boost', this.value)">
                     <span class="setting-value">${audioSettings.similarity_boost}</span>
                 </div>
                 <div class="setting-group">
                     <label>Style</label>
-                    <input type="range" min="0" max="1" step="0.1" value="${audioSettings.style}" 
+                    <input type="range" min="0" max="1" step="0.05" value="${audioSettings.style}" 
                            onchange="updateAudioSetting('style', this.value)">
                     <span class="setting-value">${audioSettings.style}</span>
                 </div>
                 <div class="setting-group">
                     <label>Vitesse</label>
-                    <input type="range" min="0.5" max="2" step="0.1" value="${audioSettings.speed}" 
+                    <input type="range" min="0.5" max="2" step="0.05" value="${audioSettings.speed}" 
                            onchange="updateAudioSetting('speed', this.value)">
                     <span class="setting-value">${audioSettings.speed}</span>
                 </div>
@@ -651,6 +651,9 @@
                 return;
             }
 
+            // OPTIMISATION 1: Préprocessing du texte pour meilleure qualité
+            const optimizedText = preprocessTextForSpeech(text);
+
             button.disabled = true;
             button.innerHTML = '<span>⏳</span> Génération...';
 
@@ -663,14 +666,20 @@
                         'xi-api-key': ELEVENLABS_API_KEY
                     },
                     body: JSON.stringify({
-                        text: text,
+                        text: optimizedText,
                         model_id: currentModel,
                         voice_settings: {
                             stability: audioSettings.stability,
                             similarity_boost: audioSettings.similarity_boost,
                             style: audioSettings.style,
-                            use_speaker_boost: true
-                        }
+                            use_speaker_boost: true,
+                            // OPTIMISATION 2: Paramètres avancés
+                            optimize_streaming_latency: 0, // Qualité max
+                            output_format: "mp3_44100_128" // Haute qualité
+                        },
+                        // OPTIMISATION 3: Génération pronunciation
+                        pronunciation_dictionary_locators: [],
+                        model_id: currentModel
                     })
                 });
 
@@ -681,8 +690,10 @@
                     
                     button.innerHTML = '<span>🔊</span> Lecture...';
                     
-                    // Applique la vitesse si supportée
+                    // OPTIMISATION 4: Paramètres audio optimisés
+                    audio.preload = 'auto';
                     audio.playbackRate = audioSettings.speed;
+                    
                     audio.play();
                     
                     audio.onended = () => {
@@ -709,6 +720,25 @@
                 }, 2000);
                 console.error('Erreur audio:', error);
             }
+        }
+
+        // OPTIMISATION 5: Fonction de préprocessing du texte
+        function preprocessTextForSpeech(text) {
+            return text
+                // Améliorations pour le français québécois
+                .replace(/\bpis\b/g, 'pis') // Garde l'accent québécois
+                .replace(/\btsé\b/g, 'tu sais') // Plus clair pour TTS
+                .replace(/\bben\b/g, 'bien') // Prononciation claire
+                .replace(/\bj'vais\b/g, 'je vais') // Évite les contractions difficiles
+                .replace(/\bt'as\b/g, 'tu as') // Plus naturel en TTS
+                .replace(/\bc'est\b/g, 'c\'est') // Apostrophe correcte
+                
+                // Améliorations générales TTS
+                .replace(/\.\.\./g, '... ') // Pauses plus naturelles  
+                .replace(/([.!?])\s*([A-Z])/g, '$1 $2') // Espace après ponctuation
+                .replace(/([,;:])/g, '$1 ') // Respiration après ponctuation
+                .replace(/\s+/g, ' ') // Normalise les espaces
+                .trim();
         }
 
         function showTyping() {
